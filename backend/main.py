@@ -1,27 +1,32 @@
+import os
+import uuid
+import aiofiles
+import requests
 from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-import openai
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+# Load environment variables from .env if running locally
+load_dotenv()
 
 app = FastAPI()
 
+# 🌍 Dynamic origins from environment
 origins = [
-    "https://wonderful-coast-022701d03.6.azurestaticapps.net",  # Your deployed frontend
-    "http://localhost:5173"  # For local dev
+    os.getenv("FRONTEND_ORIGIN"),
+    "http://localhost:5173"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Or use ["*"] for all (less secure)
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# ✅ Azure env variables
+# ✅ Azure environment variables
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
@@ -43,9 +48,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         "Content-Type": "audio/wav",
         "Accept": "application/json"
     }
-    params = {
-        "language": "en-US"
-    }
+    params = {"language": "en-US"}
 
     with open(temp_filename, "rb") as audio_file:
         response = requests.post(url, headers=headers, params=params, data=audio_file)
@@ -77,7 +80,6 @@ async def chat_with_o1(prompt: str = Form(...)):
 
     response = requests.post(endpoint, headers=headers, json=payload)
 
-    # Debug logging
     print("Status Code:", response.status_code)
     print("Response Text:", response.text)
 

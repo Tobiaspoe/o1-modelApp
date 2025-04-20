@@ -1,5 +1,5 @@
 export const sendTextToBackend = async (text) => {
-    const res = await fetch("https://scaling-acorn-976rg745rxr6h75v9-8000.app.github.dev/chat", {
+    const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -14,7 +14,7 @@ export const sendTextToBackend = async (text) => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.webm');
   
-    const res = await fetch("https://scaling-acorn-976rg745rxr6h75v9-8000.app.github.dev/transcribe", {
+    const res = await fetch(`${API_BASE}/transcribe`, {
       method: 'POST',
       body: formData,
     });
