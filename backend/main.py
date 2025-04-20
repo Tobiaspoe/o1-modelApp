@@ -19,7 +19,7 @@ frontend_origin = os.getenv("FRONTEND_ORIGIN", "*")  # Optional: set this in .en
 # ✅ CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_origin],
+    allow_origins=["https://wonderful-coast-022701d03.6.azurestaticapps.net"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
