@@ -2,28 +2,24 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import openai
-import os
-import aiofiles
-import uuid
-import requests
-
-from dotenv import load_dotenv
-
-load_dotenv()
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Use the actual frontend URL instead of "*" for better security
-frontend_origin = os.getenv("FRONTEND_ORIGIN", "*")  # Optional: set this in .env
+origins = [
+    "https://wonderful-coast-022701d03.6.azurestaticapps.net",  # Your deployed frontend
+    "http://localhost:5173"  # For local dev
+]
 
-# ✅ CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://wonderful-coast-022701d03.6.azurestaticapps.net"],
+    allow_origins=origins,  # Or use ["*"] for all (less secure)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ✅ Azure env variables
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
