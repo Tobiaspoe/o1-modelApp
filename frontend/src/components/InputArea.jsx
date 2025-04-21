@@ -1,6 +1,6 @@
 // src/components/InputArea.jsx
 import React, { useState } from 'react';
-import { Microphone } from '@radix-ui/react-icons';
+import { Mic, MicOff } from 'lucide-react';
 
 const InputArea = ({ onSend, onRecord, recording, disabled }) => {
   const [input, setInput] = useState('');
