@@ -4,30 +4,54 @@ import aiofiles
 import requests
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
-# Load environment variables
 load_dotenv()
-
 app = FastAPI()
 
-# Allow frontend & localhost
+# CORS config
 origins = [
-    "http://localhost:5173",  # local dev
-    "https://lemon-wave-07946280f.6.azurestaticapps.net"  # deployed frontend
+    "http://localhost:5173",
+    "https://lemon-wave-07946280f.6.azurestaticapps.net"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_credentials=True,  # <- updated to allow cookies/headers
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Azure environment variables
+# Log all requests and responses (debug)
+class LogMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        print(f"Incoming request: {request.method} {request.url}")
+        response = await call_next(request)
+        print(f"Response headers: {dict(response.headers)}")
+        return response
+
+app.add_middleware(LogMiddleware)
+
+# Manual fallback for OPTIONS preflight
+@app.options("/{rest_of_path:path}")
+async def preflight_handler(rest_of_path: str):
+    print(f"Handling preflight for path: {rest_of_path}")
+    return Response(
+        status_code=204,
+        headers={
+            "Access-Control-Allow-Origin": "https://lemon-wave-07946280f.6.azurestaticapps.net",
+            "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*",
+            "Access-Control-Allow-Credentials": "true"
+        }
+    )
+
+# Azure env
 AZURE_SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 AZURE_SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
@@ -44,26 +68,21 @@ async def chat_with_o1(body: ChatRequest):
         "Content-Type": "application/json",
         "api-key": AZURE_OPENAI_KEY,
     }
-
     endpoint = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_DEPLOYMENT_NAME}/chat/completions?api-version={AZURE_API_VERSION}"
-
     payload = {
         "messages": [
-            {"role": "system", "content": """Hallo!"""},
+            {"role": "system", "content": "Hallo!"},
             {"role": "user", "content": body.prompt}
         ]
     }
-
     response = requests.post(endpoint, headers=headers, json=payload)
 
     if response.status_code == 200:
-        result = response.json()
-        reply = result["choices"][0]["message"]["content"]
+        reply = response.json()["choices"][0]["message"]["content"]
         return {"response": reply}
     elif response.status_code == 401:
-        return JSONResponse(status_code=401, content={"error": "Unauthorized. Check your Azure API key and endpoint."})
-    else:
-        return JSONResponse(status_code=500, content={"error": "Chat failed", "details": response.text})
+        return JSONResponse(status_code=401, content={"error": "Unauthorized."})
+    return JSONResponse(status_code=500, content={"error": "Chat failed", "details": response.text})
 
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
@@ -87,7 +106,6 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
     if response.status_code == 200:
         transcript = response.json().get("DisplayText", "")
-
         chat_headers = {
             "Content-Type": "application/json",
             "api-key": AZURE_OPENAI_KEY,
@@ -95,7 +113,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         chat_endpoint = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_DEPLOYMENT_NAME}/chat/completions?api-version={AZURE_API_VERSION}"
         payload = {
             "messages": [
-                {"role": "system", "content": """Hallo!"""},
+                {"role": "system", "content": "Hallo!"},
                 {"role": "user", "content": transcript}
             ]
         }
@@ -103,21 +121,6 @@ async def transcribe_audio(file: UploadFile = File(...)):
 
         if chat_response.status_code == 200:
             reply = chat_response.json()["choices"][0]["message"]["content"]
-            return {
-                "transcript": transcript,
-                "response": reply
-            }
-        else:
-            return JSONResponse(
-                status_code=500,
-                content={
-                    "error": "Transcription succeeded but chat failed",
-                    "transcript": transcript,
-                    "chat_error": chat_response.text
-                }
-            )
-    else:
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Transcription failed", "details": response.text}
-        )
+            return {"transcript": transcript, "response": reply}
+        return JSONResponse(status_code=500, content={"error": "Chat failed", "transcript": transcript})
+    return JSONResponse(status_code=500, content={"error": "Transcription failed", "details": response.text})
