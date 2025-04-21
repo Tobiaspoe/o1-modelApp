@@ -6,14 +6,15 @@ on:
       - main
     paths:
       - 'backend/**'
-      - '.github/workflows/backend.yml'
+      - '.github/workflows/main_finmatcho1-fzulg.yml'
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     defaults:
       run:
-        working-directory: backend
+        working-directory: backend  # 👈 ensures all commands run in backend/
 
     steps:
       - name: Checkout code
@@ -31,7 +32,7 @@ jobs:
 
       - name: Create deployment package
         run: |
-          zip -r release.zip . -x "*.git*" "__pycache__/*"
+          zip -r release.zip . -x "*.git*" "__pycache__/*" "venv/*" "*.pyc"
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
@@ -39,5 +40,3 @@ jobs:
           app-name: Finmatcho1-fzulg
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: release.zip
-          working-directory: backend
-          
