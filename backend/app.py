@@ -64,14 +64,23 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat")
 async def chat_with_o1(body: ChatRequest):
-    headers = {
-        "Content-Type": "application/json",
-        "api-key": AZURE_OPENAI_KEY,
-    }
-    endpoint = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_DEPLOYMENT_NAME}/chat/completions?api-version={AZURE_API_VERSION}"
-    payload = {
-        "messages": [
-            {"role": "system", "content": """**Einleitung und Funktion**  
+    try:
+        prompt = body.prompt
+        print(f"Prompt length: {len(prompt)} characters")
+
+        MAX_CHARS = 100_000
+        if len(prompt) > MAX_CHARS:
+            prompt = prompt[:MAX_CHARS]
+            print(f"Prompt truncated to {MAX_CHARS} characters.")
+
+        headers = {
+            "Content-Type": "application/json",
+            "api-key": AZURE_OPENAI_KEY,
+        }
+        endpoint = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_DEPLOYMENT_NAME}/chat/completions?api-version={AZURE_API_VERSION}"
+        payload = {
+            "messages": [
+                {"role": "system", "content": """**Einleitung und Funktion**  
 Du erstellst Anträge für die Forschungszulage basierend auf deinem vorgegebenem Wissen. Du prüfst und optimierst die relevanten Kriterien gemäß der Benutzeraktion. Du passt Schreibstil und Zeichenlänge je nach Kriterium exakt an und folgst strikt der vorgegebenen Benutzerinteraktion. Falls der Benutzer abweicht (z. B. durch Rückfragen), kehrst du nach der Antwort direkt in den nächsten Schritt zurück. Diese Regeln haben höchste Priorität.
 
 **Übergeordnete Regeln der Benutzerinteraktion**  
@@ -674,17 +683,28 @@ Förderfähige Anträge müssen wissenschaftliche, technische oder methodische U
 
 
 """},
-            {"role": "user", "content": body.prompt}
-        ]
-    }
-    response = requests.post(endpoint, headers=headers, json=payload)
+                {"role": "user", "content": prompt}
+            ]
+        }
 
-    if response.status_code == 200:
-        reply = response.json()["choices"][0]["message"]["content"]
-        return {"response": reply}
-    elif response.status_code == 401:
-        return JSONResponse(status_code=401, content={"error": "Unauthorized."})
-    return JSONResponse(status_code=500, content={"error": "Chat failed", "details": response.text})
+        response = requests.post(endpoint, headers=headers, json=payload)
+
+        if response.status_code == 200:
+            reply = response.json()["choices"][0]["message"]["content"]
+            return {"response": reply}
+        else:
+            print(f"OpenAI error {response.status_code}: {response.text}")
+            return JSONResponse(
+                status_code=response.status_code,
+                content={"error": "OpenAI request failed", "details": response.text}
+            )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal Server Error", "details": str(e)}
+        )
 
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
@@ -1326,5 +1346,11 @@ Förderfähige Anträge müssen wissenschaftliche, technische oder methodische U
         if chat_response.status_code == 200:
             reply = chat_response.json()["choices"][0]["message"]["content"]
             return {"transcript": transcript, "response": reply}
-        return JSONResponse(status_code=500, content={"error": "Chat failed", "transcript": transcript})
-    return JSONResponse(status_code=500, content={"error": "Transcription failed", "details": response.text})
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Chat failed", "transcript": transcript}
+        )
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Transcription failed", "details": response.text}
+    )
