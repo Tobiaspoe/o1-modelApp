@@ -99,6 +99,7 @@ const InputArea = ({ onSendText, onSendAudio, isLoading }) => {
       formData.append('file', wavBlob, 'recording.wav');
 
       console.log('📤 Sending audio to backend for transcription...');
+      console.log("🔧 API Base URL:", import.meta.env.VITE_API_BASE);
 
       const res = await fetch(`${import.meta.env.VITE_API_BASE}/transcribe`, {
         method: 'POST',
