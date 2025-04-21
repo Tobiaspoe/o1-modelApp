@@ -16,6 +16,7 @@ app = FastAPI()
 # Allow frontend & localhost
 origins = [
     "https://lemon-wave-07946280f.6.azurestaticapps.net",
+    "https://scaling-acorn-976rg745rxr6h75v9-5174.app.github.dev",
     "http://localhost:5173"
 ]
 
