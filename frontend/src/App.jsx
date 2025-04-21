@@ -101,7 +101,7 @@ function App() {
         Toggle {darkMode ? 'Light' : 'Dark'} Mode
       </button>
 
-      <h1>FastAPI + Vite Chat</h1>
+      <h1>Finmatcho1-fzulg</h1>
       <ChatBox messages={messages} loading={loading} />
       <InputArea onSendText={handleSendText} onSendAudio={handleSendAudio} />
     </div>
