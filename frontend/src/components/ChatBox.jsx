@@ -1,41 +1,41 @@
 // src/components/ChatBox.jsx
 import React from 'react';
-import { Stack, MessageBar, MessageBarType, Text } from '@fluentui/react';
-import { Spinner } from '@fluentui/react';
+import { LoaderCircle } from 'lucide-react';
 
 const ChatBox = ({ messages, loading, darkMode }) => {
   return (
-    <div style={{
-      backgroundColor: darkMode ? '#252423' : '#f3f2f1',
-      padding: '1rem',
-      borderRadius: '8px',
-      maxHeight: '60vh',
-      overflowY: 'auto',
-      border: '1px solid #ddd'
-    }}>
-      <Stack tokens={{ childrenGap: 10 }}>
+    <div
+      className={`p-4 rounded-lg max-h-[60vh] overflow-y-auto border ${
+        darkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'
+      }`}
+    >
+      <div className="flex flex-col gap-2">
         {messages.map((msg, index) => (
-          <MessageBar
+          <div
             key={index}
-            messageBarType={msg.sender === 'User' ? MessageBarType.severeWarning : MessageBarType.info}
-            isMultiline
-            truncated={false}
-            styles={{
-              root: {
-                backgroundColor: msg.sender === 'User'
-                  ? (darkMode ? '#323130' : '#fce100')
-                  : (darkMode ? '#201f1e' : '#e1dfdd'),
-              },
-            }}
+            className={`rounded-lg p-3 text-sm ${
+              msg.sender === 'User'
+                ? darkMode
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-yellow-200 text-black'
+                : darkMode
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-200 text-black'
+            }`}
           >
-            <Text variant="small">{msg.sender} ({msg.timestamp}):</Text>
-            <div style={{ marginTop: 4 }}>{msg.text}</div>
-          </MessageBar>
+            <div className="font-semibold">
+              {msg.sender} <span className="text-xs font-normal">({msg.timestamp})</span>
+            </div>
+            <div className="mt-1">{msg.text}</div>
+          </div>
         ))}
         {loading && (
-          <Spinner label="Generating response..." />
+          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-300">
+            <LoaderCircle className="animate-spin w-5 h-5" />
+            Generating response...
+          </div>
         )}
-      </Stack>
+      </div>
     </div>
   );
 };

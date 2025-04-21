@@ -1,7 +1,6 @@
 // src/components/InputArea.jsx
 import React, { useState } from 'react';
-import { Stack, TextField, PrimaryButton, IconButton, TooltipHost } from '@fluentui/react';
-import { MicOffIcon, MicOnIcon } from '@fluentui/react-icons-mdl2';
+import { Microphone } from '@radix-ui/react-icons';
 
 const InputArea = ({ onSend, onRecord, recording, disabled }) => {
   const [input, setInput] = useState('');
@@ -21,42 +20,34 @@ const InputArea = ({ onSend, onRecord, recording, disabled }) => {
   };
 
   return (
-    <Stack horizontal tokens={{ childrenGap: 10 }}>
-      <TextField
+    <div className="flex items-end gap-2 w-full">
+      <textarea
+        className="flex-grow p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
         value={input}
-        onChange={(_, newVal) => setInput(newVal)}
+        onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Type your message..."
-        multiline
-        resizable={false}
+        rows={2}
         disabled={disabled}
-        styles={{
-          fieldGroup: { minHeight: 36, width: '100%' },
-          field: { padding: '8px' },
-        }}
       />
-      <TooltipHost content={recording ? 'Stop Recording' : 'Start Recording'}>
-        <IconButton
-          iconProps={{ iconName: recording ? 'MicrophoneOff' : 'Microphone' }}
-          onClick={onRecord}
-          disabled={disabled}
-          styles={{
-            root: {
-              backgroundColor: recording ? '#c50f1f' : '#0078d4',
-              color: 'white',
-            },
-            rootHovered: {
-              backgroundColor: recording ? '#a80000' : '#005a9e',
-            },
-          }}
-        />
-      </TooltipHost>
-      <PrimaryButton
-        text="Send"
+      <button
+        onClick={onRecord}
+        disabled={disabled}
+        title={recording ? 'Stop Recording' : 'Start Recording'}
+        className={`p-2 rounded-full text-white ${
+          recording ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
+        } disabled:opacity-50`}
+      >
+        {recording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+      </button>
+      <button
         onClick={handleSend}
         disabled={disabled || !input.trim()}
-      />
-    </Stack>
+        className="px-4 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+      >
+        Send
+      </button>
+    </div>
   );
 };
 

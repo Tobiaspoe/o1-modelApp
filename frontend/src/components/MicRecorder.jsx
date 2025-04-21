@@ -28,7 +28,7 @@ const useMicRecorder = (onStop) => {
       mediaRecorder.start();
       setRecording(true);
     } catch (err) {
-      console.error('Error accessing microphone', err);
+      console.error('Error accessing microphone:', err);
     }
   };
 
