@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import ChatBox from './components/ChatBox';
 import InputArea from './components/InputArea';
 
-const BACKEND_URL = import.meta.env.VITE_API_BASE || 'http://127.0.0.1:8000';
+const BACKEND_URL = import.meta.env.VITE_API_BASE || 'https://finmatcho1-fzulg-d2cad8eqbpf2a2fm.eastus2-01.azurewebsites.net';
 
 function App() {
   const [messages, setMessages] = useState([]);
