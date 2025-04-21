@@ -1,7 +1,17 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
+
+// Response shape from the /chat endpoint
+interface ChatResponse {
+  response: string;
+}
+
+// Response shape from the /transcribe endpoint
+interface TranscribeResponse {
+  transcript: string;
+}
 
 // Sends the user's text input to the /chat endpoint
-export const sendTextToBackend = async (text) => {
+export const sendTextToBackend = async (text: string): Promise<string> => {
   try {
     const res = await fetch(`${API_BASE}/chat`, {
       method: 'POST',
@@ -15,7 +25,7 @@ export const sendTextToBackend = async (text) => {
       throw new Error(`Chat request failed: ${res.status}`);
     }
 
-    const data = await res.json();
+    const data: ChatResponse = await res.json();
     return data.response;
   } catch (error) {
     console.error("❌ Chat error:", error);
@@ -24,7 +34,7 @@ export const sendTextToBackend = async (text) => {
 };
 
 // Sends an audio blob to the /transcribe endpoint for transcription
-export const sendAudioToBackend = async (audioBlob) => {
+export const sendAudioToBackend = async (audioBlob: Blob): Promise<string> => {
   try {
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.webm');
@@ -32,14 +42,13 @@ export const sendAudioToBackend = async (audioBlob) => {
     const res = await fetch(`${API_BASE}/transcribe`, {
       method: 'POST',
       body: formData,
-      // No need for headers — browser handles multipart boundaries automatically
     });
 
     if (!res.ok) {
       throw new Error(`Transcription request failed: ${res.status}`);
     }
 
-    const data = await res.json();
+    const data: TranscribeResponse = await res.json();
     return data.transcript;
   } catch (error) {
     console.error("❌ Audio transcription error:", error);

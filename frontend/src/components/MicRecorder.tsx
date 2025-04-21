@@ -1,10 +1,10 @@
-// src/components/MicRecorder.jsx
+// src/components/MicRecorder.ts
 import { useState, useRef } from 'react';
 
-const useMicRecorder = (onStop) => {
-  const [recording, setRecording] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+const useMicRecorder = (onStop: (audioBlob: Blob) => void) => {
+  const [recording, setRecording] = useState<boolean>(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   const startRecording = async () => {
     try {
@@ -13,7 +13,7 @@ const useMicRecorder = (onStop) => {
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e) => {
+      mediaRecorder.ondataavailable = (e: BlobEvent) => {
         if (e.data.size > 0) {
           audioChunksRef.current.push(e.data);
         }
