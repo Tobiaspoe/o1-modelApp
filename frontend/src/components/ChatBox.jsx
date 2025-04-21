@@ -1,26 +1,41 @@
 // src/components/ChatBox.jsx
 import React from 'react';
+import { Stack, MessageBar, MessageBarType, Text } from '@fluentui/react';
+import { Spinner } from '@fluentui/react';
 
-const ChatBox = ({ messages, loading }) => {
+const ChatBox = ({ messages, loading, darkMode }) => {
   return (
     <div style={{
+      backgroundColor: darkMode ? '#252423' : '#f3f2f1',
       padding: '1rem',
-      maxHeight: '400px',
+      borderRadius: '8px',
+      maxHeight: '60vh',
       overflowY: 'auto',
-      border: '1px solid #ccc',
-      marginTop: '1rem',
-      background: 'rgba(0,0,0,0.05)',
-      borderRadius: '8px'
+      border: '1px solid #ddd'
     }}>
-      {messages.map((msg, index) => (
-        <div key={index} style={{ marginBottom: '1rem' }}>
-          <strong>{msg.sender}:</strong> {msg.text}
-          <div style={{ fontSize: '0.8rem', opacity: 0.6 }}>{msg.timestamp}</div>
-        </div>
-      ))}
-      {loading && (
-        <div><em>Bot is thinking...</em></div>
-      )}
+      <Stack tokens={{ childrenGap: 10 }}>
+        {messages.map((msg, index) => (
+          <MessageBar
+            key={index}
+            messageBarType={msg.sender === 'User' ? MessageBarType.severeWarning : MessageBarType.info}
+            isMultiline
+            truncated={false}
+            styles={{
+              root: {
+                backgroundColor: msg.sender === 'User'
+                  ? (darkMode ? '#323130' : '#fce100')
+                  : (darkMode ? '#201f1e' : '#e1dfdd'),
+              },
+            }}
+          >
+            <Text variant="small">{msg.sender} ({msg.timestamp}):</Text>
+            <div style={{ marginTop: 4 }}>{msg.text}</div>
+          </MessageBar>
+        ))}
+        {loading && (
+          <Spinner label="Generating response..." />
+        )}
+      </Stack>
     </div>
   );
 };

@@ -1,87 +1,49 @@
-import React, { useState, useRef } from 'react';
+// src/components/MicRecorder.jsx
+import { useState, useRef } from 'react';
 
-const MicRecorder = ({ onAudioComplete, isRecording, onRecordingStart, onRecordingStop }) => {
+const useMicRecorder = (onStop) => {
+  const [recording, setRecording] = useState(false);
   const mediaRecorderRef = useRef(null);
-  const streamRef = useRef(null);
-  const chunks = useRef([]);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const timerRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
 
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      chunks.current = [];
-
-      mediaRecorderRef.current.ondataavailable = (e) => {
+      mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
-          chunks.current.push(e.data);
+          audioChunksRef.current.push(e.data);
         }
       };
 
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunks.current, { type: 'audio/webm' });
-
-        if (onAudioComplete && typeof onAudioComplete === 'function') {
-          console.log('🎙️ Audio recording complete. Blob:', blob);
-          onAudioComplete(blob);
-        } else {
-          console.warn('onAudioComplete is not a function or missing.');
-        }
-
-        // Clean up stream
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach((track) => track.stop());
-        }
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        onStop(audioBlob);
+        stream.getTracks().forEach((track) => track.stop());
       };
 
-      mediaRecorderRef.current.start();
-      if (onRecordingStart) onRecordingStart();
-
-      setElapsedTime(0);
-      timerRef.current = setInterval(() => {
-        setElapsedTime((prev) => prev + 1);
-      }, 1000);
+      mediaRecorder.start();
+      setRecording(true);
     } catch (err) {
-      console.error('Microphone access error:', err);
+      console.error('Error accessing microphone', err);
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
+      setRecording(false);
     }
-    if (onRecordingStop) onRecordingStop();
-    clearInterval(timerRef.current);
-    setElapsedTime(0);
   };
 
-  const formatTime = (seconds) => {
-    const mins = String(Math.floor(seconds / 60)).padStart(2, '0');
-    const secs = String(seconds % 60).padStart(2, '0');
-    return `${mins}:${secs}`;
+  const toggleRecording = () => {
+    recording ? stopRecording() : startRecording();
   };
 
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      <button
-        onClick={isRecording ? stopRecording : startRecording}
-        style={{
-          backgroundColor: isRecording ? '#e74c3c' : '#2ecc71',
-          color: 'white',
-          padding: '0.5rem 1rem',
-          border: 'none',
-          borderRadius: '0.5rem',
-          cursor: 'pointer',
-        }}
-      >
-        {isRecording ? 'Stop 🎙️' : 'Record 🎤'}
-      </button>
-      {isRecording && <span style={{ fontFamily: 'monospace' }}>⏱ {formatTime(elapsedTime)}</span>}
-    </div>
-  );
+  return { recording, toggleRecording };
 };
 
-export default MicRecorder;
+export default useMicRecorder;
