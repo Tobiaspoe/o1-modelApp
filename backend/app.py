@@ -1,6 +1,7 @@
 import os
 import uuid
 import aiofiles
+import subprocess
 import requests
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -708,11 +709,22 @@ Förderfähige Anträge müssen wissenschaftliche, technische oder methodische U
 
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...)):
-    temp_filename = f"temp_{uuid.uuid4()}.webm"
-    async with aiofiles.open(temp_filename, 'wb') as out_file:
+    webm_filename = f"temp_{uuid.uuid4()}.webm"
+    wav_filename = webm_filename.replace(".webm", ".wav")
+
+    # Save .webm file
+    async with aiofiles.open(webm_filename, 'wb') as out_file:
         content = await file.read()
         await out_file.write(content)
 
+    # Convert .webm to .wav using ffmpeg
+    ffmpeg_command = [
+        "ffmpeg", "-y", "-i", webm_filename,
+        "-ar", "16000", "-ac", "1", "-f", "wav", wav_filename
+    ]
+    subprocess.run(ffmpeg_command, check=True)
+
+    # Prepare request to Azure Speech
     url = f"https://{AZURE_SPEECH_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
     headers = {
         "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
@@ -721,13 +733,18 @@ async def transcribe_audio(file: UploadFile = File(...)):
     }
     params = {"language": "en-US"}
 
-    with open(temp_filename, "rb") as audio_file:
+    with open(wav_filename, "rb") as audio_file:
         response = requests.post(url, headers=headers, params=params, data=audio_file)
 
-    os.remove(temp_filename)
+    # Clean up
+    os.remove(webm_filename)
+    os.remove(wav_filename)
 
     if response.status_code == 200:
         transcript = response.json().get("DisplayText", "")
+        print("Transcript:", transcript)  # Debug log
+
+        # Call Azure OpenAI
         chat_headers = {
             "Content-Type": "application/json",
             "api-key": AZURE_OPENAI_KEY,
@@ -1346,11 +1363,5 @@ Förderfähige Anträge müssen wissenschaftliche, technische oder methodische U
         if chat_response.status_code == 200:
             reply = chat_response.json()["choices"][0]["message"]["content"]
             return {"transcript": transcript, "response": reply}
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Chat failed", "transcript": transcript}
-        )
-    return JSONResponse(
-        status_code=500,
-        content={"error": "Transcription failed", "details": response.text}
-    )
+        return JSONResponse(status_code=500, content={"error": "Chat failed", "transcript": transcript})
+    return JSONResponse(status_code=500, content={"error": "Transcription failed", "details": response.text})
