@@ -13,7 +13,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ messages }) => {
         {messages.map((msg, idx) => (
           <div
             key={idx}
-            className={`chat-message ${msg.sender === 'user' ? 'user' : 'bot'}`}
+            className={`message ${msg.sender === 'user' ? 'user' : 'bot'}`}
           >
             <div className="message-bubble">{msg.text}</div>
             {msg.timestamp && <span className="timestamp">{msg.timestamp}</span>}

@@ -32,9 +32,9 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
           onSend(input);
           setInput('');
         }}
-        disabled={isLoading}
+        disabled={isLoading || input.trim() === ''}
       >
-        Send
+        {isLoading ? '...' : 'Send'}
       </button>
     </div>
   );

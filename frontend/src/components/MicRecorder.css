@@ -1,38 +1,16 @@
-.mic-recorder {
-    display: flex;
-    justify-content: center;
-    margin-top: 1rem;
-  }
-  
-  .mic-recorder button {
-    padding: 0.75rem 1.5rem;
+/* MicRecorder.css */
+
+.mic-button {
+    padding: 0.75rem 1.25rem;
+    background-color: #ff8c00;
+    color: white;
     border: none;
-    border-radius: 999px;
-    font-weight: 600;
-    transition: background-color 0.2s;
+    border-radius: 8px;
     cursor: pointer;
   }
   
-  .mic-recorder button.idle {
-    background-color: #28a745;
-    color: white;
-  }
-  
-  .mic-recorder button.idle:hover:not(:disabled) {
-    background-color: #218838;
-  }
-  
-  .mic-recorder button.recording {
-    background-color: #dc3545;
-    color: white;
-  }
-  
-  .mic-recorder button.recording:hover:not(:disabled) {
-    background-color: #c82333;
-  }
-  
-  .mic-recorder button:disabled {
-    opacity: 0.5;
+  .mic-button:disabled {
+    background-color: #f1b57a;
     cursor: not-allowed;
   }
   

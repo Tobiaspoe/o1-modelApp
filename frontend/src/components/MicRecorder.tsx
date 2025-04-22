@@ -40,7 +40,7 @@ const MicRecorder: React.FC<MicRecorderProps> = ({ onAudioReady, isLoading }) =>
       <button
         onClick={isRecording ? stopRecording : startRecording}
         disabled={isLoading}
-        className={isRecording ? 'recording' : 'idle'}
+        className={`mic-button ${isRecording ? 'recording' : ''}`}
       >
         {isRecording ? 'Stop Recording' : 'Start Recording'}
       </button>

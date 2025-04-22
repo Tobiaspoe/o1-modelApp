@@ -54,10 +54,6 @@ const App: React.FC = () => {
 
   return (
     <div className="app">
-      <header>
-        <img src="/logo.png" alt="Logo" />
-      </header>
-
       <main>
         <div className="chat-box-container">
           <ChatBox messages={messages} />
