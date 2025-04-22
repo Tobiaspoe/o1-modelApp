@@ -1,52 +1,28 @@
 import React, { useState } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import ChatBox from './components/ChatBox';
 import InputArea from './components/InputArea';
-import useMicRecorder from './components/MicRecorder';
-import { sendAudioToBackend, sendTextToBackend } from './utils/api';
+import MicRecorder from './components/MicRecorder';
+
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+};
 
 const App: React.FC = () => {
-  const [messages, setMessages] = useState<{ text: string; sender: 'user' | 'bot'; timestamp: string }[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessionId] = useState<string>(uuidv4());
 
-  const addMessage = (text: string, sender: 'user' | 'bot') => {
-    const timestamp = new Date().toLocaleTimeString();
-    setMessages((prev) => [...prev, { text, sender, timestamp }]);
+  const handleNewMessage = (role: 'user' | 'assistant', content: string) => {
+    setMessages((prev) => [...prev, { role, content }]);
   };
-
-  const handleSendText = async (text: string) => {
-    addMessage(text, 'user');
-    setLoading(true);
-    try {
-      const response = await sendTextToBackend(text);
-      addMessage(response, 'bot');
-    } catch (err) {
-      addMessage('Sorry, something went wrong.', 'bot');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAudioStop = async (audioBlob: Blob) => {
-    setLoading(true);
-    try {
-      const transcript = await sendAudioToBackend(audioBlob);
-      addMessage(transcript, 'user');
-      const response = await sendTextToBackend(transcript);
-      addMessage(response, 'bot');
-    } catch (err) {
-      addMessage('Audio processing failed.', 'bot');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const { recording, toggleRecording } = useMicRecorder(handleAudioStop);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <h1 className="text-2xl font-bold mb-4">FinMatch Assistant</h1>
-      <ChatBox messages={messages} loading={loading} />
-      <InputArea onSend={handleSendText} recording={recording} onMicClick={toggleRecording} />
+    <div className="max-w-3xl mx-auto min-h-screen flex flex-col bg-white text-black">
+      <h1 className="text-2xl font-bold text-center mt-6">💬 FinMatch Assistant</h1>
+      <ChatBox messages={messages} />
+      <InputArea onNewMessage={handleNewMessage} sessionId={sessionId} />
+      <MicRecorder onNewMessage={handleNewMessage} sessionId={sessionId} />
     </div>
   );
 };

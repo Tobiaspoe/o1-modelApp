@@ -1,35 +1,42 @@
-// src/components/MicRecorder.ts
+import React from 'react';
 import { useState, useRef } from 'react';
+import { sendAudioToTranscribe } from '../utils/api';
 
-const useMicRecorder = (onStop: (audioBlob: Blob) => void) => {
-  const [recording, setRecording] = useState<boolean>(false);
+interface MicRecorderProps {
+  onNewMessage: (role: 'user' | 'assistant', content: string) => void;
+  sessionId: string;
+}
+
+const MicRecorder: React.FC<MicRecorderProps> = ({ onNewMessage, sessionId }) => {
+  const [recording, setRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
   const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const mediaRecorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = mediaRecorder;
+    audioChunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e: BlobEvent) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
+    mediaRecorder.ondataavailable = (e: BlobEvent) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        onStop(audioBlob);
-        stream.getTracks().forEach((track) => track.stop());
-      };
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      onNewMessage('user', '[🎤 Voice message]');
+      try {
+        const res = await sendAudioToTranscribe(audioBlob, sessionId);
+        onNewMessage('user', res.transcript);
+        onNewMessage('assistant', res.response);
+      } catch (err) {
+        console.error('❌ Audio transcription error:', err);
+      }
+      stream.getTracks().forEach((track) => track.stop());
+    };
 
-      mediaRecorder.start();
-      setRecording(true);
-    } catch (err) {
-      console.error('Error accessing microphone:', err);
-    }
+    mediaRecorder.start();
+    setRecording(true);
   };
 
   const stopRecording = () => {
@@ -43,7 +50,18 @@ const useMicRecorder = (onStop: (audioBlob: Blob) => void) => {
     recording ? stopRecording() : startRecording();
   };
 
-  return { recording, toggleRecording };
+  return (
+    <div className="p-4">
+      <button
+        onClick={toggleRecording}
+        className={`rounded-full px-6 py-3 ${
+          recording ? 'bg-red-500' : 'bg-green-500'
+        } text-white`}
+      >
+        {recording ? 'Stop' : '🎙️ Record'}
+      </button>
+    </div>
+  );
 };
 
-export default useMicRecorder;
+export default MicRecorder;
