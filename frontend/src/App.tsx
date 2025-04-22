@@ -15,7 +15,11 @@ const App: React.FC = () => {
   const handleSendText = async (text: string) => {
     if (!text.trim()) return;
 
-    const userMessage: Message = { sender: 'user', text, timestamp: new Date().toLocaleTimeString() };
+    const userMessage: Message = {
+      sender: 'user',
+      text,
+      timestamp: new Date().toLocaleTimeString(),
+    };
     setMessages((prev) => [...prev, userMessage]);
 
     setIsLoading(true);
@@ -25,7 +29,7 @@ const App: React.FC = () => {
         sender: 'bot',
         text: typeof response === 'string' ? response : response?.response || '[Invalid response]',
         timestamp: new Date().toLocaleTimeString(),
-      };      
+      };
       setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
       console.error('❌ Chat error:', error);
@@ -49,15 +53,23 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col">
-      <h1>FinMatch Chat</h1>
-      <div className="chat-box">
-        <ChatBox messages={messages} />
-      </div>
-      <div className="input-area">
-        <InputArea onSend={handleSendText} isLoading={isLoading} />
-        <MicRecorder onAudioReady={handleAudioBlob} isLoading={isLoading} />
-      </div>
+    <div className="app">
+      <header>
+        <img src="/logo.png" alt="Logo" />
+      </header>
+
+      <main>
+        <div className="chat-box-container">
+          <ChatBox messages={messages} />
+        </div>
+      </main>
+
+      <footer>
+        <div className="input-mic-container">
+          <InputArea onSend={handleSendText} isLoading={isLoading} />
+          <MicRecorder onAudioReady={handleAudioBlob} isLoading={isLoading} />
+        </div>
+      </footer>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './InputArea.css';
 
 interface InputAreaProps {
   onSend: (text: string) => void;
@@ -17,14 +18,13 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
   };
 
   return (
-    <div className="flex items-center bg-white dark:bg-gray-800 rounded-2xl shadow-md px-4 py-2">
+    <div className="input-area">
       <input
         type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={isLoading}
-        className="flex-grow bg-transparent focus:outline-none text-base placeholder-gray-400 dark:placeholder-gray-500 px-2 py-2"
         placeholder={isLoading ? 'Loading...' : 'Type a message...'}
       />
       <button
@@ -33,7 +33,6 @@ const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
           setInput('');
         }}
         disabled={isLoading}
-        className="ml-4 bg-blue-600 text-white px-4 py-2 rounded-xl disabled:opacity-50"
       >
         Send
       </button>

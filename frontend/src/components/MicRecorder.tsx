@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import './MicRecorder.css';
 
 interface MicRecorderProps {
   onAudioReady: (blob: Blob) => Promise<void>;
@@ -35,15 +36,11 @@ const MicRecorder: React.FC<MicRecorderProps> = ({ onAudioReady, isLoading }) =>
   };
 
   return (
-    <div className="flex justify-center mt-4">
+    <div className="mic-recorder">
       <button
         onClick={isRecording ? stopRecording : startRecording}
         disabled={isLoading}
-        className={`px-6 py-3 rounded-full font-semibold transition ${
-          isRecording
-            ? 'bg-red-600 text-white hover:bg-red-700'
-            : 'bg-green-600 text-white hover:bg-green-700'
-        } disabled:opacity-50`}
+        className={isRecording ? 'recording' : 'idle'}
       >
         {isRecording ? 'Stop Recording' : 'Start Recording'}
       </button>
