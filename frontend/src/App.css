@@ -1,26 +1,47 @@
-/* App.css */
-#root {
-  max-width: 100%;
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+h1 {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 2em;
+}
+
+.chat-box {
+  max-width: 800px;
   margin: 0 auto;
-  padding: 0;
-  min-height: 100vh;
-  text-align: left;
-  background-color: #f3f3f3;
-}
-
-.card {
-  padding: 1.5rem;
-  border-radius: 8px;
-  background-color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 1rem;
-}
-
-.logo {
-  height: 4rem;
   padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  height: 60vh;
+  overflow-y: auto;
+  border: 1px solid #ccc;
 }
 
-.read-the-docs {
-  color: #888;
+.input-area {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+.input-area input {
+  flex: 1;
+  padding: 0.5rem;
+  font-size: 1rem;
+}
+
+.input-area button {
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.recorder {
+  text-align: center;
+  margin-top: 10px;
 }
