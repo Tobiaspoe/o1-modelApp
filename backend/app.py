@@ -710,37 +710,26 @@ async def chat_with_o1(body: ChatRequest):
 
 @app.post("/transcribe")
 async def transcribe_audio(file: UploadFile = File(...), sessionId: str = Form(...)):
-    webm_filename = f"temp_{uuid.uuid4()}.webm"
-    wav_filename = webm_filename.replace(".webm", ".wav")
-
     try:
         logger.info(f"[Transcribe] Received file: {file.filename}, sessionId: {sessionId}")
 
         # Save .webm file
+        webm_filename = f"temp_{uuid.uuid4()}.webm"
         async with aiofiles.open(webm_filename, 'wb') as out_file:
             content = await file.read()
             await out_file.write(content)
         logger.info(f"[Transcribe] Saved .webm as: {webm_filename}")
 
-        # Convert to .wav
-        ffmpeg_command = [
-            "ffmpeg", "-y", "-i", webm_filename,
-            "-ar", "16000", "-ac", "1", "-f", "wav", wav_filename
-        ]
-        logger.info(f"[Transcribe] Running ffmpeg: {' '.join(ffmpeg_command)}")
-        subprocess.run(ffmpeg_command, check=True)
-        logger.info(f"[Transcribe] Converted to .wav: {wav_filename}")
-
-        # Call Azure Speech API
+        # Call Azure Speech API with webm directly
         url = f"https://{AZURE_SPEECH_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
         headers = {
             "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
-            "Content-Type": "audio/wav",
+            "Content-Type": "audio/webm; codecs=opus",
             "Accept": "application/json"
         }
         params = {"language": "en-US"}
 
-        with open(wav_filename, "rb") as audio_file:
+        with open(webm_filename, "rb") as audio_file:
             response = requests.post(url, headers=headers, params=params, data=audio_file)
 
         if response.status_code != 200:
@@ -775,20 +764,15 @@ async def transcribe_audio(file: UploadFile = File(...), sessionId: str = Form(.
         logger.info(f"[Transcribe] Chat response: {reply}")
         return {"transcript": transcript, "response": reply}
 
-    except subprocess.CalledProcessError as e:
-        logger.exception(f"[Transcribe] ffmpeg error: {e}")
-        return JSONResponse(status_code=500, content={"error": "Audio conversion failed", "details": str(e)})
-
     except Exception as e:
         logger.exception(f"[Transcribe] Unexpected error: {e}")
         return JSONResponse(status_code=500, content={"error": "Internal server error", "details": str(e)})
 
     finally:
         # Cleanup
-        for f in [webm_filename, wav_filename]:
-            try:
-                if os.path.exists(f):
-                    os.remove(f)
-                    logger.info(f"[Transcribe] Deleted temporary file: {f}")
-            except Exception as cleanup_err:
-                logger.warning(f"[Transcribe] Failed to delete {f}: {cleanup_err}")
+        try:
+            if os.path.exists(webm_filename):
+                os.remove(webm_filename)
+                logger.info(f"[Transcribe] Deleted temporary file: {webm_filename}")
+        except Exception as cleanup_err:
+            logger.warning(f"[Transcribe] Failed to delete {webm_filename}: {cleanup_err}")

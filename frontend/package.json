@@ -16,7 +16,8 @@
     "axios": "^1.8.4",
     "lucide-react": "^0.503.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "recorder-js": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.22.0",
