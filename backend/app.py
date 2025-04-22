@@ -1,9 +1,11 @@
 import os
+import logging
 import uuid
 import aiofiles
 import subprocess
 import requests
 from fastapi import FastAPI, File, UploadFile, Form
+from fastapi import UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
@@ -13,6 +15,8 @@ from starlette.requests import Request
 
 load_dotenv()
 app = FastAPI()
+
+logger = logging.getLogger("uvicorn.error")
 
 # CORS config
 origins = [
@@ -709,54 +713,82 @@ async def transcribe_audio(file: UploadFile = File(...), sessionId: str = Form(.
     webm_filename = f"temp_{uuid.uuid4()}.webm"
     wav_filename = webm_filename.replace(".webm", ".wav")
 
-    # Save .webm file
-    async with aiofiles.open(webm_filename, 'wb') as out_file:
-        content = await file.read()
-        await out_file.write(content)
+    try:
+        logger.info(f"[Transcribe] Received file: {file.filename}, sessionId: {sessionId}")
 
-    # Convert to .wav
-    ffmpeg_command = [
-        "ffmpeg", "-y", "-i", webm_filename,
-        "-ar", "16000", "-ac", "1", "-f", "wav", wav_filename
-    ]
-    subprocess.run(ffmpeg_command, check=True)
+        # Save .webm file
+        async with aiofiles.open(webm_filename, 'wb') as out_file:
+            content = await file.read()
+            await out_file.write(content)
+        logger.info(f"[Transcribe] Saved .webm as: {webm_filename}")
 
-    # Call Azure Speech API
-    url = f"https://{AZURE_SPEECH_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
-    headers = {
-        "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
-        "Content-Type": "audio/wav",
-        "Accept": "application/json"
-    }
-    params = {"language": "en-US"}
+        # Convert to .wav
+        ffmpeg_command = [
+            "ffmpeg", "-y", "-i", webm_filename,
+            "-ar", "16000", "-ac", "1", "-f", "wav", wav_filename
+        ]
+        logger.info(f"[Transcribe] Running ffmpeg: {' '.join(ffmpeg_command)}")
+        subprocess.run(ffmpeg_command, check=True)
+        logger.info(f"[Transcribe] Converted to .wav: {wav_filename}")
 
-    with open(wav_filename, "rb") as audio_file:
-        response = requests.post(url, headers=headers, params=params, data=audio_file)
+        # Call Azure Speech API
+        url = f"https://{AZURE_SPEECH_REGION}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1"
+        headers = {
+            "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
+            "Content-Type": "audio/wav",
+            "Accept": "application/json"
+        }
+        params = {"language": "en-US"}
 
-    os.remove(webm_filename)
-    os.remove(wav_filename)
+        with open(wav_filename, "rb") as audio_file:
+            response = requests.post(url, headers=headers, params=params, data=audio_file)
 
-    if response.status_code == 200:
+        if response.status_code != 200:
+            logger.error(f"[Transcribe] Azure Speech API failed: {response.status_code} - {response.text}")
+            return JSONResponse(status_code=500, content={"error": "Transcription failed", "details": response.text})
+
         transcript = response.json().get("DisplayText", "")
+        logger.info(f"[Transcribe] Transcript: {transcript}")
 
+        # Store message
         if sessionId not in session_store:
             session_store[sessionId] = []
-
         session_store[sessionId].append({"role": "user", "content": transcript})
         messages = [{"role": "system", "content": SYSTEM_PROMPT}] + session_store[sessionId]
 
-        # Call OpenAI with conversation history
+        # Call OpenAI
         chat_headers = {
             "Content-Type": "application/json",
             "api-key": AZURE_OPENAI_KEY,
         }
         chat_endpoint = f"{AZURE_OPENAI_ENDPOINT}/openai/deployments/{AZURE_DEPLOYMENT_NAME}/chat/completions?api-version={AZURE_API_VERSION}"
         payload = {"messages": messages}
+
         chat_response = requests.post(chat_endpoint, headers=chat_headers, json=payload)
 
-        if chat_response.status_code == 200:
-            reply = chat_response.json()["choices"][0]["message"]["content"]
-            session_store[sessionId].append({"role": "assistant", "content": reply})
-            return {"transcript": transcript, "response": reply}
-        return JSONResponse(status_code=500, content={"error": "Chat failed", "transcript": transcript})
-    return JSONResponse(status_code=500, content={"error": "Transcription failed", "details": response.text})
+        if chat_response.status_code != 200:
+            logger.error(f"[Transcribe] OpenAI chat failed: {chat_response.status_code} - {chat_response.text}")
+            return JSONResponse(status_code=500, content={"error": "Chat failed", "transcript": transcript})
+
+        reply = chat_response.json()["choices"][0]["message"]["content"]
+        session_store[sessionId].append({"role": "assistant", "content": reply})
+        logger.info(f"[Transcribe] Chat response: {reply}")
+        return {"transcript": transcript, "response": reply}
+
+    except subprocess.CalledProcessError as e:
+        logger.exception(f"[Transcribe] ffmpeg error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Audio conversion failed", "details": str(e)})
+
+    except Exception as e:
+        logger.exception(f"[Transcribe] Unexpected error: {e}")
+        return JSONResponse(status_code=500, content={"error": "Internal server error", "details": str(e)})
+
+    finally:
+        # Cleanup
+        for f in [webm_filename, wav_filename]:
+            try:
+                if os.path.exists(f):
+                    os.remove(f)
+                    logger.info(f"[Transcribe] Deleted temporary file: {f}")
+            except Exception as cleanup_err:
+                logger.warning(f"[Transcribe] Failed to delete {f}: {cleanup_err}")
