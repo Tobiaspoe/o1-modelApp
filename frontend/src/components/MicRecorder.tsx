@@ -1,14 +1,12 @@
-import React from 'react';
-import { useState, useRef } from 'react';
-import { sendAudioToTranscribe } from '../utils/api';
+import React, { useState, useRef } from 'react';
 
 interface MicRecorderProps {
-  onNewMessage: (role: 'user' | 'assistant', content: string) => void;
-  sessionId: string;
+  onAudioReady: (blob: Blob) => Promise<void>;
+  isLoading: boolean;
 }
 
-const MicRecorder: React.FC<MicRecorderProps> = ({ onNewMessage, sessionId }) => {
-  const [recording, setRecording] = useState(false);
+const MicRecorder: React.FC<MicRecorderProps> = ({ onAudioReady, isLoading }) => {
+  const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -18,47 +16,36 @@ const MicRecorder: React.FC<MicRecorderProps> = ({ onNewMessage, sessionId }) =>
     mediaRecorderRef.current = mediaRecorder;
     audioChunksRef.current = [];
 
-    mediaRecorder.ondataavailable = (e: BlobEvent) => {
-      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    mediaRecorder.ondataavailable = (e) => {
+      audioChunksRef.current.push(e.data);
     };
 
     mediaRecorder.onstop = async () => {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      onNewMessage('user', '[🎤 Voice message]');
-      try {
-        const res = await sendAudioToTranscribe(audioBlob, sessionId);
-        onNewMessage('user', res.transcript);
-        onNewMessage('assistant', res.response);
-      } catch (err) {
-        console.error('❌ Audio transcription error:', err);
-      }
-      stream.getTracks().forEach((track) => track.stop());
+      await onAudioReady(audioBlob);
     };
 
     mediaRecorder.start();
-    setRecording(true);
+    setIsRecording(true);
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setRecording(false);
-    }
-  };
-
-  const toggleRecording = () => {
-    recording ? stopRecording() : startRecording();
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
   };
 
   return (
-    <div className="p-4">
+    <div className="flex justify-center mt-4">
       <button
-        onClick={toggleRecording}
-        className={`rounded-full px-6 py-3 ${
-          recording ? 'bg-red-500' : 'bg-green-500'
-        } text-white`}
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={isLoading}
+        className={`px-6 py-3 rounded-full font-semibold transition ${
+          isRecording
+            ? 'bg-red-600 text-white hover:bg-red-700'
+            : 'bg-green-600 text-white hover:bg-green-700'
+        } disabled:opacity-50`}
       >
-        {recording ? 'Stop' : '🎙️ Record'}
+        {isRecording ? 'Stop Recording' : 'Start Recording'}
       </button>
     </div>
   );

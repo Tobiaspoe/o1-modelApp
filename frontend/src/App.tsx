@@ -1,40 +1,58 @@
-import React from 'react';
-import { Message } from '../src'; // <-- make sure this path matches your folder structure
+import React, { useState } from 'react';
+import ChatBox from './components/ChatBox';
+import InputArea from './components/InputArea';
+import MicRecorder from './components/MicRecorder';
+import { sendTextToChat, sendAudioToTranscribe } from './utils/api';
+import { v4 as uuidv4 } from 'uuid';
+import { Message } from './index';
 
-interface ChatBoxProps {
-  messages: Message[];
-}
+const App: React.FC = () => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [sessionId] = useState<string>(uuidv4());
+  const [isLoading, setIsLoading] = useState(false);
 
-const ChatBox: React.FC<ChatBoxProps> = ({ messages }) => {
+  const handleSendText = async (text: string) => {
+    if (!text.trim()) return;
+
+    const userMessage: Message = { sender: 'user', text, timestamp: new Date().toLocaleTimeString() };
+    setMessages((prev) => [...prev, userMessage]);
+
+    setIsLoading(true);
+    try {
+      const response = await sendTextToChat(text, sessionId);
+      const botMessage: Message = { sender: 'bot', text: response, timestamp: new Date().toLocaleTimeString() };
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (error) {
+      console.error('❌ Chat error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAudioBlob = async (blob: Blob) => {
+    setIsLoading(true);
+    try {
+      const transcription = await sendAudioToTranscribe(blob, sessionId);
+      if (transcription) {
+        await handleSendText(transcription);
+      }
+    } catch (error) {
+      console.error('❌ Transcription error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="w-full max-w-4xl mx-auto mt-6 px-4 pb-24">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md p-6 space-y-4 max-h-[70vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
-        {messages.map((msg, idx) => (
-          <div
-            key={idx}
-            className={`flex flex-col ${
-              msg.sender === 'user' ? 'items-end' : 'items-start'
-            }`}
-          >
-            <div
-              className={`px-4 py-2 rounded-2xl text-base max-w-[80%] whitespace-pre-wrap ${
-                msg.sender === 'user'
-                  ? 'bg-blue-500 text-white rounded-br-none'
-                  : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 rounded-bl-none'
-              }`}
-            >
-              {msg.text}
-            </div>
-            {msg.timestamp && (
-              <span className="text-xs text-gray-400 mt-1">
-                {msg.timestamp}
-              </span>
-            )}
-          </div>
-        ))}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col">
+      <h1 className="text-3xl font-bold text-center my-6">FinMatch Chat</h1>
+      <ChatBox messages={messages} />
+      <div className="fixed bottom-4 w-full max-w-4xl mx-auto left-0 right-0 px-4">
+        <InputArea onSend={handleSendText} isLoading={isLoading} />
+        <MicRecorder onAudioReady={handleAudioBlob} isLoading={isLoading} />
       </div>
     </div>
   );
 };
 
-export default ChatBox;
+export default App;

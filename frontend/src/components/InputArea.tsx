@@ -1,34 +1,42 @@
 import React, { useState } from 'react';
-import { sendTextToChat } from '../utils/api';
 
 interface InputAreaProps {
-  onSend: (text: string, sessionId: string) => void;
-  sessionId: string;
+  onSend: (text: string) => void;
+  isLoading: boolean;
 }
 
-const InputArea: React.FC<InputAreaProps> = ({ onSend, sessionId }) => {
+const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
   const [input, setInput] = useState('');
 
-  const handleKeyDown = async (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (input.trim()) {
-        onSend(input, sessionId);
-        setInput('');
-      }
+      onSend(input);
+      setInput('');
     }
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-4 px-4">
-      <textarea
-        className="w-full h-24 p-4 rounded-2xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base resize-none shadow-md"
-        placeholder="Type your message here..."
+    <div className="flex items-center bg-white dark:bg-gray-800 rounded-2xl shadow-md px-4 py-2">
+      <input
+        type="text"
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
+        disabled={isLoading}
+        className="flex-grow bg-transparent focus:outline-none text-base placeholder-gray-400 dark:placeholder-gray-500 px-2 py-2"
+        placeholder={isLoading ? 'Loading...' : 'Type a message...'}
       />
-      <p className="text-sm text-gray-400 mt-1">Press Enter to send, Shift+Enter for newline</p>
+      <button
+        onClick={() => {
+          onSend(input);
+          setInput('');
+        }}
+        disabled={isLoading}
+        className="ml-4 bg-blue-600 text-white px-4 py-2 rounded-xl disabled:opacity-50"
+      >
+        Send
+      </button>
     </div>
   );
 };
