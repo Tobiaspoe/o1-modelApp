@@ -7,10 +7,10 @@ interface Message {
 }
 
 interface ChatBoxProps {
-  messages: Message[];
+  messages?: Message[]; // Made optional to avoid runtime error
 }
 
-const ChatBox: React.FC<ChatBoxProps> = ({ messages }) => {
+const ChatBox: React.FC<ChatBoxProps> = ({ messages = [] }) => {
   return (
     <div className="w-full max-w-4xl mx-auto mt-6 px-4 pb-24">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md p-6 space-y-4 max-h-[70vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
