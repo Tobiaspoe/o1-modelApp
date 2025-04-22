@@ -1,30 +1,40 @@
-import React, { useState } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import ChatBox from './components/ChatBox';
-import InputArea from './components/InputArea';
-import MicRecorder from './components/MicRecorder';
+import React from 'react';
+import { Message } from '../src'; // <-- make sure this path matches your folder structure
 
-type Message = {
-  role: 'user' | 'assistant';
-  content: string;
-};
+interface ChatBoxProps {
+  messages: Message[];
+}
 
-const App: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [sessionId] = useState<string>(uuidv4());
-
-  const handleNewMessage = (role: 'user' | 'assistant', content: string) => {
-    setMessages((prev) => [...prev, { role, content }]);
-  };
-
+const ChatBox: React.FC<ChatBoxProps> = ({ messages }) => {
   return (
-    <div className="max-w-3xl mx-auto min-h-screen flex flex-col bg-white text-black">
-      <h1 className="text-2xl font-bold text-center mt-6">💬 FinMatch Assistant</h1>
-      <ChatBox messages={messages} />
-      <InputArea onNewMessage={handleNewMessage} sessionId={sessionId} />
-      <MicRecorder onNewMessage={handleNewMessage} sessionId={sessionId} />
+    <div className="w-full max-w-4xl mx-auto mt-6 px-4 pb-24">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-md p-6 space-y-4 max-h-[70vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+        {messages.map((msg, idx) => (
+          <div
+            key={idx}
+            className={`flex flex-col ${
+              msg.sender === 'user' ? 'items-end' : 'items-start'
+            }`}
+          >
+            <div
+              className={`px-4 py-2 rounded-2xl text-base max-w-[80%] whitespace-pre-wrap ${
+                msg.sender === 'user'
+                  ? 'bg-blue-500 text-white rounded-br-none'
+                  : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 rounded-bl-none'
+              }`}
+            >
+              {msg.text}
+            </div>
+            {msg.timestamp && (
+              <span className="text-xs text-gray-400 mt-1">
+                {msg.timestamp}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default App;
+export default ChatBox;
