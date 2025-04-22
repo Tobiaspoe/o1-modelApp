@@ -1,6 +1,6 @@
 import React from 'react';
 import { Message } from '../index';
-import './ChatBox.css';
+import './Chatbox.css';
 
 interface ChatBoxProps {
   messages: Message[];
